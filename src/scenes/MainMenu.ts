@@ -25,7 +25,8 @@ export class MainMenu extends Scene
 
         this.input.once('pointerdown', () => {
 
-            this.scene.start('Game');
+            this.scene.start('ChooseCharacter');
+            // this.scene.start('Game');
 
         });
 
