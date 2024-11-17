@@ -4,12 +4,13 @@ export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
   background: Phaser.GameObjects.Image;
   msg_text: Phaser.GameObjects.Text;
-  cursors: any;
-  player: any;
-  house: any;
+  cursors: Phaser.Types.Input.Keyboard.CursorKeys | undefined;
+  player: Phaser.Physics.Arcade.Sprite;
+  house: Phaser.Physics.Arcade.Sprite;
   facing: "left" | "right" | "idle" = "idle";
   obstacles: Phaser.Physics.Arcade.StaticGroup;
   selectedCharacter: string;
+  canEnter: boolean = false;
 
   constructor() {
     super("Game");
@@ -55,7 +56,10 @@ export class Game extends Scene {
     });
 
     const tiles: any = map.addTilesetImage("tiles");
-    map.createLayer("layer", tiles, 0, 0);
+    const layer = map.createLayer("layer", tiles, 0, 0);
+    console.log("Layer", layer);
+    console.log("Map", map)
+    console.log("Tiles", tiles);
 
     // AUDIO
     const ost = this.sound.add("ost", {
@@ -72,7 +76,6 @@ export class Game extends Scene {
 
     this.house = this.physics.add.sprite(250, 450, "thing");
     this.house.setImmovable(true);
-    this.house.body.setAllowGravity(false);
     this.house.setSize(150, 150);
 
         /******************
@@ -96,7 +99,13 @@ export class Game extends Scene {
     this.player.setCollideWorldBounds(true);
 
     console.log("obstacles", buildings.getChildren())
-    this.physics.add.collider(this.player, buildings);
+    this.physics.add.collider(this.player, buildings, () => {
+
+      console.log("COLLISION");
+      this.canEnter = true;
+    ;console.log("canEnter", this.canEnter);
+
+    }, undefined, this);
     
 
     // Create walking animations using all 6 frames
@@ -133,6 +142,14 @@ export class Game extends Scene {
       stroke: "#000000",
       strokeThickness: 1,
     });
+
+
+
+    this.cursors?.space.on("down", () => {
+      if (this.canEnter) {
+        this.scene.start("Projects", { character: this.selectedCharacter });
+      }
+    });
   }
 
   update(): void {
@@ -140,10 +157,10 @@ export class Game extends Scene {
     this.player.setVelocity(0);
 
     if (
-      this.cursors.down.isDown ||
-      this.cursors.up.isDown ||
-      this.cursors.left.isDown ||
-      this.cursors.right.isDown
+      this.cursors!.down.isDown ||
+      this.cursors!.up.isDown ||
+      this.cursors!.left.isDown ||
+      this.cursors!.right.isDown
     ) {
       if (!this.game.sound.isPlaying("walk-grass")) {
         this.sound.play("walk-grass");
@@ -151,34 +168,34 @@ export class Game extends Scene {
     }
 
     if (
-      this.cursors.down.isUp ||
-      this.cursors.up.isUp ||
-      this.cursors.left.isUp ||
-      this.cursors.right.isUp
+      this.cursors!.down.isUp ||
+      this.cursors!.up.isUp ||
+      this.cursors!.left.isUp ||
+      this.cursors!.right.isUp
     ) {
       if (!this.game.sound.isPlaying("walk-grass")) {
         this.sound.removeByKey("walk-grass");
       }
     }
 
-    if (this.cursors.left.isDown) {
+    if (this.cursors!.left.isDown) {
       this.player.setVelocityX(-160);
       this.player.setFlipX(true);
       if (!this.player.anims.isPlaying) {
         this.player.anims.play("walk", true);
       }
-    } else if (this.cursors.right.isDown) {
+    } else if (this.cursors!.right.isDown) {
       this.player.setVelocityX(160);
       this.player.setFlipX(false);
       if (!this.player.anims.isPlaying) {
         this.player.anims.play("walk", true);
       }
-    } else if (this.cursors.up.isDown) {
+    } else if (this.cursors!.up.isDown) {
       this.player.setVelocityY(-160);
       if (!this.player.anims.isPlaying) {
         this.player.anims.play("walk", true);
       }
-    } else if (this.cursors.down.isDown) {
+    } else if (this.cursors!.down.isDown) {
       this.player.setVelocityY(160);
       if (!this.player.anims.isPlaying) {
         this.player.anims.play("walk", true);
@@ -193,5 +210,40 @@ export class Game extends Scene {
     //     // this.player.setVelocity(0);
     //     console.log("Collision!")
     // })
+
+    // const isColliding = Phaser.Geom.Intersects.RectangleToRectangle(
+    //   this.player.getBounds(),
+    //   this.house.getBounds()
+    // );
+    // if (!isColliding) {
+    //   this.canEnter = false;
+      
+    // }
+
+    if (this.cursors?.space.isDown && this.canEnter) {
+      this.enterHouse();
+    }
+  }
+
+  checkProximity(player : Phaser.Physics.Arcade.Sprite, house: Phaser.Physics.Arcade.Sprite) {
+    const distance = Phaser.Math.Distance.Between(
+      player.x,
+      player.y,
+      house.x,
+      house.y
+    );
+    if (distance > 50) {
+      this.canEnter = true;
+    } else {
+      this.canEnter = false;
+    }
+    
+  }
+
+  enterHouse() {
+    console.log("Entering house...")
+    if (this.canEnter) {
+      this.scene.start("Projects", { character: this.selectedCharacter });
+    }
   }
 }
