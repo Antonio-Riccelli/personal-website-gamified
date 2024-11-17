@@ -7,6 +7,7 @@ export class ChooseCharacter extends Scene {
   man: Phaser.GameObjects.Image;
   woman: Phaser.GameObjects.Image;
   selectSound: Phaser.Sound.BaseSound;
+  confirmSound: Phaser.Sound.BaseSound;
   characterSelected: boolean | string = false;
   music: Phaser.Sound.BaseSound;
 
@@ -21,20 +22,24 @@ export class ChooseCharacter extends Scene {
     this.load.image("woman", "assets/villagers/woman/woman.png");
     this.load.image("woman-select", "assets/villagers/woman/woman-select.png");
     this.load.audio("select", ["assets/audio/sfx/select.mp3"]);
-    this.load.audio("selectCharacter", ["assets/audio/music/character-select.mp3"]);
+    this.load.audio("soundtrack", ["assets/audio/music/character-select.mp3"]);
+    this.load.audio("confirmCharacter", ["assets/audio/sfx/confirm.mp3"]);
+    this.load.font('pixelFont', 'assets/fonts/PixelifySans-VariableFont_wght.ttf', 'opentype');
   }
 
   create() {
     // Create keyboard input
     this.cursors = this.input.keyboard?.createCursorKeys();
 
-    // Create audio
+    // Add audio
     this.selectSound = this.sound.add("select").setVolume(0.2);
-    const ost =  this.sound.add("selectCharacter", {
+    const ost =  this.sound.add("soundtrack", {
         loop: true,
         volume: 0.2,
       });
       ost.play();
+
+    this.confirmSound = this.sound.add("confirmCharacter");
     
 
     // Set background image and stretch it to fit the screen
@@ -46,6 +51,21 @@ export class ChooseCharacter extends Scene {
     const scaleX = this.cameras.main.width / this.background.width;
     const scaleY = this.cameras.main.height / this.background.height;
     this.background.setScale(scaleX, scaleY);
+
+    // Add text
+    this.add.text(
+      this.cameras.main.worldView.x + this.cameras.main.width / 2,
+      this.cameras.main.worldView.y + this.cameras.main.height / 2,
+      "Choose your character",
+      {
+        fontSize: "4rem",
+        color: "#000",
+        align: "center",
+        fontFamily: "pixelFont",
+        stroke: "#00FFFF",
+        strokeThickness: 4,
+      }
+    ).setOrigin(0.5, 0);
 
     // Create the character images
     this.man = this.add
@@ -130,10 +150,31 @@ export class ChooseCharacter extends Scene {
         this.getSelectedCharacter;
       }
     }
+
+    if (Phaser.Input.Keyboard.JustDown(this.cursors!.space)) {
+      if (this.getSelectedCharacter) {
+        this.confirmSound.play();
+        this.scene.transition({
+          target: "Game",
+          duration: 1000,
+          moveBelow: true,
+          data: {
+            character: this.getSelectedCharacter,
+          },
+          onStart: this.transitionOut,
+        });
+      }
+    }
   }
 
   get getSelectedCharacter() {
     console.log("Selected Character:", this.characterSelected);
     return this.characterSelected;
+  }
+
+  transitionOut() {
+    this.scene.scene.cameras.main.fadeOut(1000, 0, 0, 0, () => {
+      console.log("Fading out...");
+    });
   }
 }

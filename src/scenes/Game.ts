@@ -9,13 +9,21 @@ export class Game extends Scene {
   house: any;
   facing: "left" | "right" | "idle" = "idle";
   obstacles: Phaser.Physics.Arcade.StaticGroup;
+  selectedCharacter: string;
 
   constructor() {
     super("Game");
   }
 
+  init (data: {[key: string] : string})
+  {
+    this.sound.removeByKey("soundtrack");
+    console.log('init', data);
+    this.selectedCharacter = data.character;
+  }
+
   preload() {
-    this.load.spritesheet("dude", "assets/Man_walk.png", {
+    this.load.spritesheet("character", `assets/villagers/${this.selectedCharacter}/${this.selectedCharacter}_walk.png`, {
       frameWidth: 32,
       frameHeight: 48,
       spacing: 16,
@@ -30,6 +38,10 @@ export class Game extends Scene {
   }
 
   create() {
+    
+    // Fade in
+    this.cameras.main.fadeIn(1000);
+
     this.physics.world.setBounds(0, 0, 1024, 768);
 
     const level = Array(24)
@@ -45,12 +57,18 @@ export class Game extends Scene {
     const tiles: any = map.addTilesetImage("tiles");
     map.createLayer("layer", tiles, 0, 0);
 
-    // const ost = this.sound.add("ost", {
-    //     loop: true,
-    //     volume: 0.2,
-    // });
+    // AUDIO
+    const ost = this.sound.add("ost", {
+        loop: true,
+        volume: 0.2,
+    });
+    if (!this.game.sound.isPlaying("ost")) {
+      ost.play();
+              }
 
     this.sound.add("walk-grass", { loop: true });
+
+    // BUILDINGS
 
     this.house = this.physics.add.sprite(250, 450, "thing");
     this.house.setImmovable(true);
@@ -64,9 +82,7 @@ export class Game extends Scene {
     const buildings = this.add.group();
     buildings.add(this.house);
 
-    //         if (!this.game.sound.isPlaying("ost")) {
-    // ost.play();
-    //         }
+
 
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.camera = this.cameras.main;
@@ -75,7 +91,7 @@ export class Game extends Scene {
     //     this.scene.start('MainMenu');
     // });
 
-    this.player = this.physics.add.sprite(100, 450, "dude");
+    this.player = this.physics.add.sprite(100, 450, "character");
     this.player.setDisplaySize(60, 60);
     this.player.setCollideWorldBounds(true);
 
@@ -86,7 +102,7 @@ export class Game extends Scene {
     // Create walking animations using all 6 frames
     this.anims.create({
       key: "walk",
-      frames: this.anims.generateFrameNumbers("dude", {
+      frames: this.anims.generateFrameNumbers("character", {
         start: 0,
         end: 5, // Using all 6 frames from the spritesheet
       }),
@@ -97,7 +113,7 @@ export class Game extends Scene {
     // Idle animation using just the first frame
     this.anims.create({
       key: "idle",
-      frames: [{ key: "dude", frame: 0 }],
+      frames: [{ key: "character", frame: 0 }],
       frameRate: 10,
     });
 
