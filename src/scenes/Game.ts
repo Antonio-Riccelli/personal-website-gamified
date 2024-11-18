@@ -43,6 +43,7 @@ export class Game extends Scene {
     );
 
     this.load.image("projectsBuilding", "assets/objects/objects/house/4.png");
+    this.load.image("projectsBuilding-selected", "assets/objects/objects/house/4-selected.png");
     this.load.image("tiles", "assets/objects/tiles-1/tileset.png");
 
     this.load.audio("ost", ["assets/phaser.mp3"]);
@@ -232,26 +233,19 @@ export class Game extends Scene {
       this.player.anims.play("idle", true);
     }
 
-    // this.physics.world.collide(this.house, this.player, () => {
-    //     // this.house.setVelocity(0);
-    //     // this.player.setVelocity(0);
-    //     console.log("Collision!")
-    // })
-
-    // const isColliding = Phaser.Geom.Intersects.RectangleToRectangle(
-    //   this.player.getBounds(),
-    //   this.house.getBounds()
-    // );
-    // if (!isColliding) {
-    //   this.canEnter = false;
-
-    // }
-
     this.checkDistance();
+
+    if (this.canEnter.projectsBuilding) {
+      this.projectsBuilding.setTexture("projectsBuilding-selected");
+    } else if (!this.canEnter.projectsBuilding) {
+      this.projectsBuilding.setTexture("projectsBuilding");
+    }
 
     if (this.cursors?.space.isDown) {
       this.enterBuilding();
     }
+
+
   } // end of update ()
 
   checkCollision(
@@ -284,38 +278,25 @@ export class Game extends Scene {
     const objects = [...this.buildings.getChildren()];
 
     objects.forEach((object: any) => {
-      const playerBounds = this.player.getBounds();
-      const objectBounds = object.getBounds();
 
-      const playerCenter = {
-        x: playerBounds.centerX + playerBounds.height / 2,
-        y: playerBounds.centerY + playerBounds.width / 2,
+      const circle = new Phaser.Geom.Circle(
+        object.x,
+        object.y,
+        150
+      )
+
+      const isInRange = Phaser.Geom.Circle.Contains(circle, this.player.x, this.player.y);
+
+      if (!isInRange) {
+        this.canEnter = {
+          ...this.canEnterStartingState,
+          [object.name]: false,
+        };
+        // console.log("canEnter", this.canEnter);
       }
 
-      const objectCenter = {
-        x: objectBounds.centerX + objectBounds.height / 2,
-        y: objectBounds.centerY + objectBounds.width / 2,
-      }
-
-      const distance = Phaser.Math.Distance.Between(
-        playerCenter.x,
-        playerCenter.y,
-        objectCenter.x,
-        objectCenter.y
-      );
-
-      console.log("Distance", distance);
-
-      if (distance > 160) {
-        if (this.canEnter[object.name]) {
-          this.canEnter = {
-            ...this.canEnterStartingState,
-            [object.name]: false,
-          };
-
-        console.log("Updating distance - canEnter", this.canEnter);
-      }
-    }});
+    
+  });
   }
 
   enterBuilding() {
