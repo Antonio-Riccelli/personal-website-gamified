@@ -1,6 +1,6 @@
 import { Scene } from "phaser";
 
-export class Projects extends Scene {
+export class ProjectsBuilding extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
   background: Phaser.GameObjects.Image;
   msg_text: Phaser.GameObjects.Text;

@@ -6,32 +6,43 @@ export class Game extends Scene {
   msg_text: Phaser.GameObjects.Text;
   cursors: Phaser.Types.Input.Keyboard.CursorKeys | undefined;
   player: Phaser.Physics.Arcade.Sprite;
-  house: Phaser.Physics.Arcade.Sprite;
+  buildings: Phaser.Physics.Arcade.Group;
+  projectsBuilding: Phaser.Physics.Arcade.Sprite;
+  aboutBuilding: Phaser.Physics.Arcade.Sprite;
   facing: "left" | "right" | "idle" = "idle";
   obstacles: Phaser.Physics.Arcade.StaticGroup;
   selectedCharacter: string;
-  canEnter: boolean = false;
+  canEnterStartingState: { [key: string]: boolean } = {
+    projectsBuilding: false,
+    aboutBuilding: false,
+  };
+  canEnter: { [key: string]: boolean } = {
+    ...this.canEnterStartingState,
+  };
 
   constructor() {
     super("Game");
   }
 
-  init (data: {[key: string] : string})
-  {
+  init(data: { [key: string]: string }) {
     this.sound.removeByKey("soundtrack");
-    console.log('init', data);
+    console.log("init", data);
     this.selectedCharacter = data.character;
   }
 
   preload() {
-    this.load.spritesheet("character", `assets/villagers/${this.selectedCharacter}/${this.selectedCharacter}_walk.png`, {
-      frameWidth: 32,
-      frameHeight: 48,
-      spacing: 16,
-      margin: 0,
-    });
+    this.load.spritesheet(
+      "character",
+      `assets/villagers/${this.selectedCharacter}/${this.selectedCharacter}_walk.png`,
+      {
+        frameWidth: 32,
+        frameHeight: 48,
+        spacing: 16,
+        margin: 0,
+      }
+    );
 
-    this.load.image("thing", "assets/house.png");
+    this.load.image("projectsBuilding", "assets/objects/objects/house/4.png");
     this.load.image("tiles", "assets/objects/tiles-1/tileset.png");
 
     this.load.audio("ost", ["assets/phaser.mp3"]);
@@ -39,7 +50,6 @@ export class Game extends Scene {
   }
 
   create() {
-    
     // Fade in
     this.cameras.main.fadeIn(1000);
 
@@ -58,34 +68,39 @@ export class Game extends Scene {
     const tiles: any = map.addTilesetImage("tiles");
     const layer = map.createLayer("layer", tiles, 0, 0);
     console.log("Layer", layer);
-    console.log("Map", map)
+    console.log("Map", map);
     console.log("Tiles", tiles);
 
     // AUDIO
     const ost = this.sound.add("ost", {
-        loop: true,
-        volume: 0.2,
+      loop: true,
+      volume: 0.2,
     });
     if (!this.game.sound.isPlaying("ost")) {
       ost.play();
-              }
+    }
 
     this.sound.add("walk-grass", { loop: true });
 
     // BUILDINGS
 
-    this.house = this.physics.add.sprite(250, 450, "thing");
-    this.house.setImmovable(true);
-    this.house.setSize(150, 150);
+    this.projectsBuilding = this.physics.add.sprite(
+      250,
+      450,
+      "projectsBuilding"
+    );
+    this.projectsBuilding.setImmovable(true);
+    this.projectsBuilding.setSize(150, 150);
+    this.projectsBuilding.setName("projectsBuilding");
 
-        /******************
-    ********* OBSTACLES
-    ******************/
+    /******************
+     ********* OBSTACLES
+     ******************/
 
-    const buildings = this.add.group();
-    buildings.add(this.house);
-
-
+    this.buildings = this.physics.add.group({
+      immovable: true,
+    });
+    this.buildings.add(this.projectsBuilding);
 
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.camera = this.cameras.main;
@@ -96,17 +111,27 @@ export class Game extends Scene {
 
     this.player = this.physics.add.sprite(100, 450, "character");
     this.player.setDisplaySize(60, 60);
+    this.player.setName("player");
     this.player.setCollideWorldBounds(true);
 
-    console.log("obstacles", buildings.getChildren())
-    this.physics.add.collider(this.player, buildings, () => {
+    console.log("obstacles", this.buildings.getChildren());
+    this.physics.add.collider(
+      this.player,
+      this.buildings,
+      (player, building) => this.checkCollision(player, building),
+      undefined,
+      this
+    );
 
-      console.log("COLLISION");
-      this.canEnter = true;
-    ;console.log("canEnter", this.canEnter);
+    // (player, object) => {
+    //   console.log("COLLISION");
+    //   console.log("Collision player", player);
+    //   console.log("Collision object", object);
 
-    }, undefined, this);
-    
+    //   this.canEnter = true;
+    // ;console.log("canEnter", this.canEnter);
+
+    // }
 
     // Create walking animations using all 6 frames
     this.anims.create({
@@ -127,13 +152,18 @@ export class Game extends Scene {
     });
 
     // TEXT
-    this.add.text(this.house.x - this.house.width/2, this.house.y - (this.house.height/100 * 66), "Projects", {
-      fontFamily: "Arial Black",
-      fontSize: "2rem",
-      color: "#000000",
-      stroke: "#000000",
-      strokeThickness: 1,
-    });
+    this.add.text(
+      this.projectsBuilding.x - this.projectsBuilding.width / 2,
+      this.projectsBuilding.y - (this.projectsBuilding.height / 100) * 66,
+      "Projects",
+      {
+        fontFamily: "Arial Black",
+        fontSize: "2rem",
+        color: "#000000",
+        stroke: "#000000",
+        strokeThickness: 1,
+      }
+    );
 
     this.add.text(100, 150, "About", {
       fontFamily: "Arial Black",
@@ -143,15 +173,12 @@ export class Game extends Scene {
       strokeThickness: 1,
     });
 
-
-
     this.cursors?.space.on("down", () => {
-      if (this.canEnter) {
+      if (this.canEnter.projectsBuilding) {
         this.scene.start("Projects", { character: this.selectedCharacter });
       }
     });
   }
-
   update(): void {
     // Reset velocity
     this.player.setVelocity(0);
@@ -217,33 +244,88 @@ export class Game extends Scene {
     // );
     // if (!isColliding) {
     //   this.canEnter = false;
-      
+
     // }
 
-    if (this.cursors?.space.isDown && this.canEnter) {
-      this.enterHouse();
-    }
-  }
+    this.checkDistance();
 
-  checkProximity(player : Phaser.Physics.Arcade.Sprite, house: Phaser.Physics.Arcade.Sprite) {
-    const distance = Phaser.Math.Distance.Between(
-      player.x,
-      player.y,
-      house.x,
-      house.y
+    if (this.cursors?.space.isDown) {
+      this.enterBuilding();
+    }
+  } // end of update ()
+
+  checkCollision(
+    player:
+      | Phaser.Physics.Arcade.Body
+      | Phaser.Types.Physics.Arcade.GameObjectWithBody
+      | Phaser.Tilemaps.Tile,
+    object:
+      | Phaser.Physics.Arcade.Body
+      | Phaser.Types.Physics.Arcade.GameObjectWithBody
+      | Phaser.Tilemaps.Tile
+  ) {
+    console.log(
+      "Collision between",
+      "name" in player ? player.name : "player",
+      "and",
+      "name" in object ? object.name : "object"
     );
-    if (distance > 50) {
-      this.canEnter = true;
-    } else {
-      this.canEnter = false;
+
+    if ("name" in object) {
+      this.canEnter = {
+        ...this.canEnterStartingState,
+        [object.name]: true,
+      };
+      console.log("canEnter", this.canEnter);
     }
-    
   }
 
-  enterHouse() {
-    console.log("Entering house...")
-    if (this.canEnter) {
-      this.scene.start("Projects", { character: this.selectedCharacter });
-    }
+  checkDistance() {
+    const objects = [...this.buildings.getChildren()];
+
+    objects.forEach((object: any) => {
+      const playerBounds = this.player.getBounds();
+      const objectBounds = object.getBounds();
+
+      const playerCenter = {
+        x: playerBounds.centerX + playerBounds.height / 2,
+        y: playerBounds.centerY + playerBounds.width / 2,
+      }
+
+      const objectCenter = {
+        x: objectBounds.centerX + objectBounds.height / 2,
+        y: objectBounds.centerY + objectBounds.width / 2,
+      }
+
+      const distance = Phaser.Math.Distance.Between(
+        playerCenter.x,
+        playerCenter.y,
+        objectCenter.x,
+        objectCenter.y
+      );
+
+      console.log("Distance", distance);
+
+      if (distance > 160) {
+        if (this.canEnter[object.name]) {
+          this.canEnter = {
+            ...this.canEnterStartingState,
+            [object.name]: false,
+          };
+
+        console.log("Updating distance - canEnter", this.canEnter);
+      }
+    }});
+  }
+
+  enterBuilding() {
+    console.log("Entering building...");
+
+    // This should be a safe approach as only one building should be true at any given time
+    Object.entries(this.canEnter).find(([key, value]) => {
+      if (value) {
+        this.scene.start(key, { character: this.selectedCharacter });
+      }
+    });
   }
 }
