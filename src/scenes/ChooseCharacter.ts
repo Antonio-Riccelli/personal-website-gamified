@@ -28,6 +28,8 @@ export class ChooseCharacter extends Scene {
   }
 
   create() {
+    
+
     // Create keyboard input
     this.cursors = this.input.keyboard?.createCursorKeys();
 

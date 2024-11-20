@@ -1,4 +1,5 @@
 import { Scene } from "phaser";
+import { Player } from "../classes/Player";
 
 export class ProjectsBuilding extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -31,14 +32,35 @@ export class ProjectsBuilding extends Scene {
     });
 
     this.load.image("thing", "assets/house.png");
-    this.load.image("tiles", "assets/objects/tiles-1/tileset.png");
+    this.load.image("wood-floor", "./assets/objects/tiles-3/wood-1.png");
   }
 
   create() {
-    
+    this.cameras.main.fadeIn(2000);
+
+    const levelData = Array(96)
+    .fill(null)
+    .map(() => Array(256).fill(0))
+
+    const map = this.make.tilemap({
+      data: levelData,
+      tileWidth: 128,
+      tileHeight: 128,
+    })
+
+    const tiles = map.addTilesetImage("wood-floor", "wood-floor");
+    map.createLayer("layer", tiles!, 0, 0)
+
+    // Add player
+    // this.player = this.physics.add.sprite(this.cameras.main.width / 2, this.cameras.main.height - 96, "character");
+    this.player = new Player(this, this.cameras.main.width / 2, this.cameras.main.height - 96,  this.selectedCharacter).setScale(3, 3);
+
+
+
+
   }
 
   update() {
- 
+    this.player.update();
   }
 }

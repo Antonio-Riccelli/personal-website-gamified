@@ -1,4 +1,5 @@
 import { Scene } from "phaser";
+import { Player } from "../classes/Player";
 
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -10,8 +11,8 @@ export class Game extends Scene {
   projectsBuilding: Phaser.Physics.Arcade.Sprite;
   aboutBuilding: Phaser.Physics.Arcade.Sprite;
   facing: "left" | "right" | "idle" = "idle";
-  obstacles: Phaser.Physics.Arcade.StaticGroup;
   selectedCharacter: string;
+  character: Player;
   canEnterStartingState: { [key: string]: boolean } = {
     projectsBuilding: false,
     aboutBuilding: false,
@@ -30,9 +31,9 @@ export class Game extends Scene {
     this.selectedCharacter = data.character;
   }
 
-  preload() {
+  preload(): void {
     this.load.spritesheet(
-      "character",
+      `${this.selectedCharacter}_walk`,
       `assets/villagers/${this.selectedCharacter}/${this.selectedCharacter}_walk.png`,
       {
         frameWidth: 32,
@@ -43,14 +44,17 @@ export class Game extends Scene {
     );
 
     this.load.image("projectsBuilding", "assets/objects/objects/house/4.png");
-    this.load.image("projectsBuilding-selected", "assets/objects/objects/house/4-selected.png");
+    this.load.image(
+      "projectsBuilding-selected",
+      "assets/objects/objects/house/4-selected.png"
+    );
     this.load.image("tiles", "assets/objects/tiles-1/tileset.png");
 
     this.load.audio("ost", ["assets/phaser.mp3"]);
     this.load.audio("walk-grass", ["assets/audio/sfx/walk-grass.mp3"]);
   }
 
-  create() {
+  create(): void {
     // Fade in
     this.cameras.main.fadeIn(1000);
 
@@ -67,10 +71,7 @@ export class Game extends Scene {
     });
 
     const tiles: any = map.addTilesetImage("tiles");
-    const layer = map.createLayer("layer", tiles, 0, 0);
-    console.log("Layer", layer);
-    console.log("Map", map);
-    console.log("Tiles", tiles);
+    map.createLayer("layer", tiles, 0, 0);
 
     // AUDIO
     const ost = this.sound.add("ost", {
@@ -95,7 +96,7 @@ export class Game extends Scene {
     this.projectsBuilding.setName("projectsBuilding");
 
     /******************
-     ********* OBSTACLES
+     ********* Buildings
      ******************/
 
     this.buildings = this.physics.add.group({
@@ -106,16 +107,8 @@ export class Game extends Scene {
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.camera = this.cameras.main;
 
-    // this.input.once('pointerdown', () => {
-    //     this.scene.start('MainMenu');
-    // });
+    this.player = new Player(this, 100, 450,  this.selectedCharacter);
 
-    this.player = this.physics.add.sprite(100, 450, "character");
-    this.player.setDisplaySize(60, 60);
-    this.player.setName("player");
-    this.player.setCollideWorldBounds(true);
-
-    console.log("obstacles", this.buildings.getChildren());
     this.physics.add.collider(
       this.player,
       this.buildings,
@@ -124,33 +117,23 @@ export class Game extends Scene {
       this
     );
 
-    // (player, object) => {
-    //   console.log("COLLISION");
-    //   console.log("Collision player", player);
-    //   console.log("Collision object", object);
-
-    //   this.canEnter = true;
-    // ;console.log("canEnter", this.canEnter);
-
-    // }
-
     // Create walking animations using all 6 frames
-    this.anims.create({
-      key: "walk",
-      frames: this.anims.generateFrameNumbers("character", {
-        start: 0,
-        end: 5, // Using all 6 frames from the spritesheet
-      }),
-      frameRate: 12,
-      repeat: -1,
-    });
+    // this.anims.create({
+    //   key: "walk",
+    //   frames: this.anims.generateFrameNumbers("character", {
+    //     start: 0,
+    //     end: 5, // Using all 6 frames from the spritesheet
+    //   }),
+    //   frameRate: 12,
+    //   repeat: -1,
+    // });
 
     // Idle animation using just the first frame
-    this.anims.create({
-      key: "idle",
-      frames: [{ key: "character", frame: 0 }],
-      frameRate: 10,
-    });
+    // this.anims.create({
+    //   key: "idle",
+    //   frames: [{ key: "character", frame: 0 }],
+    //   frameRate: 10,
+    // });
 
     // TEXT
     this.add.text(
@@ -176,77 +159,89 @@ export class Game extends Scene {
 
     this.cursors?.space.on("down", () => {
       if (this.canEnter.projectsBuilding) {
-        this.scene.start("Projects", { character: this.selectedCharacter });
+        
+        this.scene.transition({
+          target: "Projects",
+          duration: 1000,
+          moveBelow: true,
+          data: {
+            character: this.selectedCharacter,
+          },
+          onStart: () => {
+            this.scene.scene.cameras.main.fadeOut(1000, 0, 0, 0, () => {
+              console.log("Fading out...");
+            });
+          },
+        });
+
       }
     });
   }
+
   update(): void {
-    // Reset velocity
-    this.player.setVelocity(0);
+    this.player.update();
 
-    if (
-      this.cursors!.down.isDown ||
-      this.cursors!.up.isDown ||
-      this.cursors!.left.isDown ||
-      this.cursors!.right.isDown
-    ) {
-      if (!this.game.sound.isPlaying("walk-grass")) {
-        this.sound.play("walk-grass");
-      }
-    }
-
-    if (
-      this.cursors!.down.isUp ||
-      this.cursors!.up.isUp ||
-      this.cursors!.left.isUp ||
-      this.cursors!.right.isUp
-    ) {
-      if (!this.game.sound.isPlaying("walk-grass")) {
-        this.sound.removeByKey("walk-grass");
-      }
-    }
-
-    if (this.cursors!.left.isDown) {
-      this.player.setVelocityX(-160);
-      this.player.setFlipX(true);
-      if (!this.player.anims.isPlaying) {
-        this.player.anims.play("walk", true);
-      }
-    } else if (this.cursors!.right.isDown) {
-      this.player.setVelocityX(160);
-      this.player.setFlipX(false);
-      if (!this.player.anims.isPlaying) {
-        this.player.anims.play("walk", true);
-      }
-    } else if (this.cursors!.up.isDown) {
-      this.player.setVelocityY(-160);
-      if (!this.player.anims.isPlaying) {
-        this.player.anims.play("walk", true);
-      }
-    } else if (this.cursors!.down.isDown) {
-      this.player.setVelocityY(160);
-      if (!this.player.anims.isPlaying) {
-        this.player.anims.play("walk", true);
-      }
-    } else {
-      this.player.setVelocity(0);
-      this.player.anims.play("idle", true);
-    }
-
+    // this.animateWalk();
+    // this.addSoundToWalk();
     this.checkDistance();
-
-    if (this.canEnter.projectsBuilding) {
-      this.projectsBuilding.setTexture("projectsBuilding-selected");
-    } else if (!this.canEnter.projectsBuilding) {
-      this.projectsBuilding.setTexture("projectsBuilding");
-    }
 
     if (this.cursors?.space.isDown) {
       this.enterBuilding();
     }
-
-
   } // end of update ()
+
+  // animateWalk() {
+  //   if (this.cursors!.left.isDown) {
+  //     this.player.setVelocityX(-160);
+  //     this.player.setFlipX(true);
+  //     if (!this.player.anims.isPlaying) {
+  //       this.player.anims.play("walk", true);
+  //     }
+  //   } else if (this.cursors!.right.isDown) {
+  //     this.player.setVelocityX(160);
+  //     this.player.setFlipX(false);
+  //     if (!this.player.anims.isPlaying) {
+  //       this.player.anims.play("walk", true);
+  //     }
+  //   } else if (this.cursors!.up.isDown) {
+  //     this.player.setVelocityY(-160);
+  //     if (!this.player.anims.isPlaying) {
+  //       this.player.anims.play("walk", true);
+  //     }
+  //   } else if (this.cursors!.down.isDown) {
+  //     this.player.setVelocityY(160);
+  //     if (!this.player.anims.isPlaying) {
+  //       this.player.anims.play("walk", true);
+  //     }
+  //   } else {
+  //     this.player.setVelocity(0);
+  //     this.player.anims.play("idle", true);
+  //   }
+  // }
+
+  // addSoundToWalk() {
+  //   if (
+  //     this.cursors!.down.isDown ||
+  //     this.cursors!.up.isDown ||
+  //     this.cursors!.left.isDown ||
+  //     this.cursors!.right.isDown
+  //   ) {
+  //     if (!this.game.sound.isPlaying("walk-grass")) {
+  //       this.sound.play("walk-grass");
+  //     }
+  //   }
+
+  //   if (
+  //     this.cursors!.down.isUp ||
+  //     this.cursors!.up.isUp ||
+  //     this.cursors!.left.isUp ||
+  //     this.cursors!.right.isUp
+  //   ) {
+  //     if (!this.game.sound.isPlaying("walk-grass")) {
+  //       this.sound.removeByKey("walk-grass");
+  //     }
+  //   }
+  // }
 
   checkCollision(
     player:
@@ -266,37 +261,55 @@ export class Game extends Scene {
     );
 
     if ("name" in object) {
-      this.canEnter = {
-        ...this.canEnterStartingState,
-        [object.name]: true,
-      };
-      console.log("canEnter", this.canEnter);
+      this.setCanEnter({ [object.name]: true });
     }
+  }
+
+  updateSelected(key: string, selected: boolean) {
+    this.buildings.getMatching("name", key)[0].setTexture(
+      `${key}${selected ? '-selected' : ''}`
+    )
+  }
+
+  setCanEnter(updatedValue: { [key: string]: boolean }) {
+    this.canEnter = {
+      ...this.canEnterStartingState,
+      ...updatedValue,
+    };
+    console.log(
+      "Updated canEnter with new value:",
+      updatedValue,
+      "\nCurrent canEnter:",
+      this.canEnter
+    );
+
+    this.updateSelected(...Object.entries(updatedValue)[0]) 
   }
 
   checkDistance() {
     const objects = [...this.buildings.getChildren()];
 
-    objects.forEach((object: any) => {
-
+    objects.forEach((object: Phaser.GameObjects.GameObject) => {
       const circle = new Phaser.Geom.Circle(
-        object.x,
-        object.y,
+        "x" in object && typeof object.x === "number" ? object.x : 0,
+        "y" in object && typeof object.y === "number" ? object.y : 0,
         150
-      )
+      );
 
-      const isInRange = Phaser.Geom.Circle.Contains(circle, this.player.x, this.player.y);
+      const isInRange = Phaser.Geom.Circle.Contains(
+        circle,
+        this.player.x,
+        this.player.y
+      );
 
       if (!isInRange) {
-        this.canEnter = {
-          ...this.canEnterStartingState,
-          [object.name]: false,
-        };
-        // console.log("canEnter", this.canEnter);
+        this.setCanEnter({
+          ["name" in object && typeof object.name === "string"
+            ? object.name
+            : ""]: false,
+        });
       }
-
-    
-  });
+    });
   }
 
   enterBuilding() {
