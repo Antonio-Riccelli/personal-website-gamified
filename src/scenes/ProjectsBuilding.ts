@@ -1,5 +1,6 @@
 import { Scene } from "phaser";
 import { Player } from "../classes/Player";
+import { SceneFloorMapping } from "../utils/SceneFloorMapping";
 
 export class ProjectsBuilding extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
@@ -11,16 +12,18 @@ export class ProjectsBuilding extends Scene {
   facing: "left" | "right" | "idle" = "idle";
   obstacles: Phaser.Physics.Arcade.StaticGroup;
   selectedCharacter: string;
+  floor: string;
 
   constructor() {
-    super("Projects");
+    super("ProjectsBuilding");
   }
 
   init (data: {[key: string] : string})
   {
-    this.sound.removeByKey("soundtrack");
+    this.sound.removeByKey("ost");
     console.log('init', data);
     this.selectedCharacter = data.character;
+    this.floor = SceneFloorMapping[this.scene.key].floor;
   }
 
   preload() {
@@ -33,10 +36,12 @@ export class ProjectsBuilding extends Scene {
 
     this.load.image("thing", "assets/house.png");
     this.load.image("wood-floor", "./assets/objects/tiles-3/wood-1.png");
+    this.load.audio(`walk-${this.floor}`, [`assets/audio/sfx/walk-${this.floor}.mp3`]);
   }
 
   create() {
     this.cameras.main.fadeIn(2000);
+    this.cursors = this.input.keyboard?.createCursorKeys();
 
     const levelData = Array(96)
     .fill(null)
@@ -50,17 +55,19 @@ export class ProjectsBuilding extends Scene {
 
     const tiles = map.addTilesetImage("wood-floor", "wood-floor");
     map.createLayer("layer", tiles!, 0, 0)
-
+    this.sound.add(`walk-${this.floor}`, { loop: true });
     // Add player
-    // this.player = this.physics.add.sprite(this.cameras.main.width / 2, this.cameras.main.height - 96, "character");
-    this.player = new Player(this, this.cameras.main.width / 2, this.cameras.main.height - 96,  this.selectedCharacter).setScale(3, 3);
-
-
-
-
+    this.player = new Player(this, this.cameras.main.width / 2, this.cameras.main.height - 96,  this.selectedCharacter, this.floor).setScale(3, 3);
   }
 
   update() {
     this.player.update();
+
+    if (this.cursors?.space.isDown) {
+      this.scene.start("Game", {
+        character: this.selectedCharacter,
+        floor: this.floor,
+      });
+    }
   }
 }

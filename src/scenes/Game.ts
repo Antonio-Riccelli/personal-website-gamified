@@ -1,8 +1,10 @@
 import { Scene } from "phaser";
 import { Player } from "../classes/Player";
+import { SceneFloorMapping } from "../utils/SceneFloorMapping";
 
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
+  floor: string;
   background: Phaser.GameObjects.Image;
   msg_text: Phaser.GameObjects.Text;
   cursors: Phaser.Types.Input.Keyboard.CursorKeys | undefined;
@@ -29,6 +31,7 @@ export class Game extends Scene {
     this.sound.removeByKey("soundtrack");
     console.log("init", data);
     this.selectedCharacter = data.character;
+    this.floor = SceneFloorMapping[this.scene.key].floor;
   }
 
   preload(): void {
@@ -51,7 +54,7 @@ export class Game extends Scene {
     this.load.image("tiles", "assets/objects/tiles-1/tileset.png");
 
     this.load.audio("ost", ["assets/phaser.mp3"]);
-    this.load.audio("walk-grass", ["assets/audio/sfx/walk-grass.mp3"]);
+    this.load.audio(`walk-${this.floor}`, [`assets/audio/sfx/walk-${this.floor}.mp3`]);
   }
 
   create(): void {
@@ -82,7 +85,7 @@ export class Game extends Scene {
       ost.play();
     }
 
-    this.sound.add("walk-grass", { loop: true });
+    this.sound.add(`walk-${this.floor}`, { loop: true });
 
     // BUILDINGS
 
@@ -107,7 +110,7 @@ export class Game extends Scene {
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.camera = this.cameras.main;
 
-    this.player = new Player(this, 100, 450,  this.selectedCharacter);
+    this.player = new Player(this, 100, 450,  this.selectedCharacter, this.floor);
 
     this.physics.add.collider(
       this.player,
@@ -116,24 +119,6 @@ export class Game extends Scene {
       undefined,
       this
     );
-
-    // Create walking animations using all 6 frames
-    // this.anims.create({
-    //   key: "walk",
-    //   frames: this.anims.generateFrameNumbers("character", {
-    //     start: 0,
-    //     end: 5, // Using all 6 frames from the spritesheet
-    //   }),
-    //   frameRate: 12,
-    //   repeat: -1,
-    // });
-
-    // Idle animation using just the first frame
-    // this.anims.create({
-    //   key: "idle",
-    //   frames: [{ key: "character", frame: 0 }],
-    //   frameRate: 10,
-    // });
 
     // TEXT
     this.add.text(
@@ -161,7 +146,7 @@ export class Game extends Scene {
       if (this.canEnter.projectsBuilding) {
         
         this.scene.transition({
-          target: "Projects",
+          target: "ProjectsBuilding",
           duration: 1000,
           moveBelow: true,
           data: {
@@ -180,9 +165,6 @@ export class Game extends Scene {
 
   update(): void {
     this.player.update();
-
-    // this.animateWalk();
-    // this.addSoundToWalk();
     this.checkDistance();
 
     if (this.cursors?.space.isDown) {
@@ -190,58 +172,10 @@ export class Game extends Scene {
     }
   } // end of update ()
 
-  // animateWalk() {
-  //   if (this.cursors!.left.isDown) {
-  //     this.player.setVelocityX(-160);
-  //     this.player.setFlipX(true);
-  //     if (!this.player.anims.isPlaying) {
-  //       this.player.anims.play("walk", true);
-  //     }
-  //   } else if (this.cursors!.right.isDown) {
-  //     this.player.setVelocityX(160);
-  //     this.player.setFlipX(false);
-  //     if (!this.player.anims.isPlaying) {
-  //       this.player.anims.play("walk", true);
-  //     }
-  //   } else if (this.cursors!.up.isDown) {
-  //     this.player.setVelocityY(-160);
-  //     if (!this.player.anims.isPlaying) {
-  //       this.player.anims.play("walk", true);
-  //     }
-  //   } else if (this.cursors!.down.isDown) {
-  //     this.player.setVelocityY(160);
-  //     if (!this.player.anims.isPlaying) {
-  //       this.player.anims.play("walk", true);
-  //     }
-  //   } else {
-  //     this.player.setVelocity(0);
-  //     this.player.anims.play("idle", true);
-  //   }
-  // }
-
-  // addSoundToWalk() {
-  //   if (
-  //     this.cursors!.down.isDown ||
-  //     this.cursors!.up.isDown ||
-  //     this.cursors!.left.isDown ||
-  //     this.cursors!.right.isDown
-  //   ) {
-  //     if (!this.game.sound.isPlaying("walk-grass")) {
-  //       this.sound.play("walk-grass");
-  //     }
-  //   }
-
-  //   if (
-  //     this.cursors!.down.isUp ||
-  //     this.cursors!.up.isUp ||
-  //     this.cursors!.left.isUp ||
-  //     this.cursors!.right.isUp
-  //   ) {
-  //     if (!this.game.sound.isPlaying("walk-grass")) {
-  //       this.sound.removeByKey("walk-grass");
-  //     }
-  //   }
-  // }
+  shutdown() {
+    this.sound.removeByKey("walk");
+    this.sound.stopAll();
+  }
 
   checkCollision(
     player:
@@ -318,7 +252,7 @@ export class Game extends Scene {
     // This should be a safe approach as only one building should be true at any given time
     Object.entries(this.canEnter).find(([key, value]) => {
       if (value) {
-        this.scene.start(key, { character: this.selectedCharacter });
+        this.scene.start(`${key[0].toUpperCase()}${key.slice(1)}`, { character: this.selectedCharacter });
       }
     });
   }

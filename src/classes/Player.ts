@@ -2,10 +2,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   scene: Phaser.Scene;
   character: string;
+  sceneFloor: string;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, character: string) {
+  constructor(scene: Phaser.Scene, x: number, y: number, character: string, sceneFloor: string) {
     super(scene, x, y, `${character}_walk`);
     this.scene = scene;
+    this.sceneFloor = sceneFloor;
 
     // Add sprite to scene
     scene.add.existing(this);
@@ -54,7 +56,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.setFrame(0)
       }
 
+     
+
       this.handleWalkSound();
+
+    
   }
 
   private createAnimations(characterName: string): void {
@@ -73,14 +79,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
 
   private handleWalkSound(): void {
+    const walkSound = `walk-${this.sceneFloor}`;
+  
     if (
       this.cursors!.down.isDown ||
       this.cursors!.up.isDown ||
       this.cursors!.left.isDown ||
       this.cursors!.right.isDown
     ) {
-      if (!this.scene.game.sound.isPlaying("walk-grass")) {
-        this.scene.sound.play("walk-grass");
+      if (!this.scene.game.sound.isPlaying(walkSound)) {
+        this.scene.sound.play(walkSound);
       }
     }
 
@@ -90,8 +98,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.cursors!.left.isUp ||
       this.cursors!.right.isUp
     ) {
-      if (!this.scene.game.sound.isPlaying("walk-grass")) {
-        this.scene.sound.removeByKey("walk-grass");
+      if (!this.scene.game.sound.isPlaying(walkSound)) {
+        this.scene.sound.removeByKey(walkSound);
       }
     }
   }
