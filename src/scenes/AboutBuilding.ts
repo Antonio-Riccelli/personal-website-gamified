@@ -2,7 +2,7 @@ import { Scene } from "phaser";
 import { Player } from "../classes/Player";
 import { SceneFloorMapping } from "../utils/SceneFloorMapping";
 
-export class ProjectsBuilding extends Scene {
+export class AboutBuilding extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
   background: Phaser.GameObjects.Image;
   msg_text: Phaser.GameObjects.Text;
@@ -14,11 +14,10 @@ export class ProjectsBuilding extends Scene {
   selectedCharacter: string;
   floor: string;
   rectangle: Phaser.Geom.Rectangle;
-  twCanExitBuilding: Phaser.Tweens.Tween;
-  prevScene: string;
+  twCanExitBuilding: Phaser.Tweens.Tween
 
   constructor() {
-    super("ProjectsBuilding");
+    super("AboutBuilding");
   }
 
   init (data: {[key: string] : string})
@@ -37,8 +36,7 @@ export class ProjectsBuilding extends Scene {
       margin: 0,
     });
 
-    this.load.image("thing", "assets/house.png");
-    this.load.image("wood-floor", "./assets/objects/tiles-3/wood-1.png");
+    this.load.image("about-building-floor", "./assets/objects/tiles-3/wood-2.png");
     this.load.audio(`walk-${this.floor}`, [`assets/audio/sfx/walk-${this.floor}.mp3`]);
   }
 
@@ -56,7 +54,7 @@ export class ProjectsBuilding extends Scene {
       tileHeight: 128,
     })
 
-    const tiles = map.addTilesetImage("wood-floor", "wood-floor");
+    const tiles = map.addTilesetImage("about-building-floor", "about-building-floor");
     map.createLayer("layer", tiles!, 0, 0)
     this.sound.add(`walk-${this.floor}`, { loop: true });
     // Add player
@@ -93,30 +91,30 @@ export class ProjectsBuilding extends Scene {
     if (this.cursors?.space.isDown) {
       this.scene.transition({
         target: "Game",
-        duration: 1500,
+        duration: 1000,
         moveBelow: true,
-        onStart: () => {
-          this.scene.scene.cameras.main.fadeOut(1500, 0, 0, 0)
-        },
         data: {
           character: this.selectedCharacter,
           floor: this.floor,
           prevScene: this.scene.key
+        },
+        onStart: () => {
+          this.scene.scene.cameras.main.fadeOut(1000, 0, 0, 0)
         }
       });
     }
 
     const isInRange = this.rectangle.contains(this.player.x, this.player.y);
     if (isInRange) {
-    
+      // console.log("Attempting playing tween in range...")
       if (!this.twCanExitBuilding.isPlaying()) {
         this.twCanExitBuilding.restart();
       }
     } else if (!isInRange) {
-    
+      // console.log("No longer in range...")
       this.twCanExitBuilding.pause();
       this.player.clearTint();
-    
+      // this.player.setAlpha(1);
     }
   }
 }

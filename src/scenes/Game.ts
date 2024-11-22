@@ -1,8 +1,10 @@
 import { Scene } from "phaser";
 import { Player } from "../classes/Player";
+import { SceneFloorMapping } from "../utils/SceneFloorMapping";
 
 export class Game extends Scene {
   camera: Phaser.Cameras.Scene2D.Camera;
+  floor: string;
   background: Phaser.GameObjects.Image;
   msg_text: Phaser.GameObjects.Text;
   cursors: Phaser.Types.Input.Keyboard.CursorKeys | undefined;
@@ -20,6 +22,7 @@ export class Game extends Scene {
   canEnter: { [key: string]: boolean } = {
     ...this.canEnterStartingState,
   };
+  prevScene: string;
 
   constructor() {
     super("Game");
@@ -29,8 +32,9 @@ export class Game extends Scene {
     this.sound.removeByKey("soundtrack");
     console.log("init", data);
     this.selectedCharacter = data.character;
+    this.floor = SceneFloorMapping[this.scene.key].floor;
+    this.prevScene = data.prevScene;
   }
-
   preload(): void {
     this.load.spritesheet(
       `${this.selectedCharacter}_walk`,
@@ -48,21 +52,43 @@ export class Game extends Scene {
       "projectsBuilding-selected",
       "assets/objects/objects/house/4-selected.png"
     );
+    this.load.image("aboutBuilding", "assets/objects/objects/house/2.png");
+    this.load.image(
+      "aboutBuilding-selected",
+      "assets/objects/objects/house/2-selected.png"
+    );
     this.load.image("tiles", "assets/objects/tiles-1/tileset.png");
 
     this.load.audio("ost", ["assets/phaser.mp3"]);
-    this.load.audio("walk-grass", ["assets/audio/sfx/walk-grass.mp3"]);
+    this.load.audio(`walk-${this.floor}`, [`assets/audio/sfx/walk-${this.floor}.mp3`]);
   }
 
   create(): void {
     // Fade in
-    this.cameras.main.fadeIn(1000);
+    this.cameras.main.fadeIn(2000);
 
     this.physics.world.setBounds(0, 0, 1024, 768);
 
     const level = Array(24)
       .fill(null)
-      .map(() => Array(32).fill(0));
+      .map(() => Array(32).fill(37));
+
+      for (let y = 0; y < level.length; y++) {
+        for (let x = 0; x < level[y].length; x++) {
+          const randNum = Math.random();
+          if (randNum < 0.2) {
+            level[y][x] = 37;
+          } else if (randNum < 0.4) {
+            level[y][x] = 20;
+          } else if (randNum < 0.6) {
+            level[y][x] = 18;
+          } else if (randNum < 0.8) {
+            level[y][x] = 25;
+          } else {
+            level[y][x] = 37;
+          }
+        }
+      }
 
     const map = this.make.tilemap({
       data: level,
@@ -82,7 +108,7 @@ export class Game extends Scene {
       ost.play();
     }
 
-    this.sound.add("walk-grass", { loop: true });
+    this.sound.add(`walk-${this.floor}`, { loop: true });
 
     // BUILDINGS
 
@@ -95,6 +121,15 @@ export class Game extends Scene {
     this.projectsBuilding.setSize(150, 150);
     this.projectsBuilding.setName("projectsBuilding");
 
+    this.aboutBuilding = this.physics.add.sprite(
+      640,
+      200,
+      "aboutBuilding"
+    );
+    this.aboutBuilding.setImmovable(true);
+    this.aboutBuilding.setSize(150, 150);
+    this.aboutBuilding.setName("aboutBuilding");
+
     /******************
      ********* Buildings
      ******************/
@@ -102,164 +137,89 @@ export class Game extends Scene {
     this.buildings = this.physics.add.group({
       immovable: true,
     });
-    this.buildings.add(this.projectsBuilding);
+  
+    this.buildings.addMultiple([this.projectsBuilding, this.aboutBuilding]);
 
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.camera = this.cameras.main;
 
-    this.player = new Player(this, 100, 450,  this.selectedCharacter);
+    const playerStartingCoords = {
+      x: this.prevScene === "ChooseCharacter" ? this.cameras.main.width / 2 : (this as any)[`${this.prevScene[0].toLowerCase()}${this.prevScene.slice(1)}`]?.x + this.player.width / 2 ?? 50,
+      y: this.prevScene === "ChooseCharacter" ? this.cameras.main.height - 96 : (this as any)[`${this.prevScene[0].toLowerCase()}${this.prevScene.slice(1)}`]?.y + this.player.height + 50 ?? 50,
+    } 
+
+    this.player = new Player(this, playerStartingCoords.x, playerStartingCoords.y,  this.selectedCharacter, this.floor);
 
     this.physics.add.collider(
       this.player,
       this.buildings,
-      (player, building) => this.checkCollision(player, building),
+      (_, building) => this.checkCollision(building),
       undefined,
       this
     );
 
-    // Create walking animations using all 6 frames
-    // this.anims.create({
-    //   key: "walk",
-    //   frames: this.anims.generateFrameNumbers("character", {
-    //     start: 0,
-    //     end: 5, // Using all 6 frames from the spritesheet
-    //   }),
-    //   frameRate: 12,
-    //   repeat: -1,
-    // });
-
-    // Idle animation using just the first frame
-    // this.anims.create({
-    //   key: "idle",
-    //   frames: [{ key: "character", frame: 0 }],
-    //   frameRate: 10,
-    // });
-
     // TEXT
-    this.add.text(
-      this.projectsBuilding.x - this.projectsBuilding.width / 2,
+    const pjBuilding_rectangleForText = this.add.rectangle(
+      this.projectsBuilding.x ,
       this.projectsBuilding.y - (this.projectsBuilding.height / 100) * 66,
+      this.projectsBuilding.width,
+      this.projectsBuilding.height / 100 * 33,
+      0x000000,
+      0.2
+    );
+    const pjBuilding_text = this.add.text(
+      0, 0,
       "Projects",
       {
-        fontFamily: "Arial Black",
+        fontFamily: "pixelFont",
         fontSize: "2rem",
         color: "#000000",
         stroke: "#000000",
         strokeThickness: 1,
-      }
+        align: "center"
+      },
     );
+    Phaser.Display.Align.In.Center(pjBuilding_text, pjBuilding_rectangleForText);
 
-    this.add.text(100, 150, "About", {
-      fontFamily: "Arial Black",
-      fontSize: "32px",
+    const abBuilding_rectangleForText = this.add.rectangle(
+      this.aboutBuilding.x ,
+      this.aboutBuilding.y - (this.aboutBuilding.height / 100) * 66,
+      this.aboutBuilding.width,
+      this.aboutBuilding.height / 100 * 33,
+      0x000000,
+      0.2
+    );
+    const abBuilding_text = this.add.text(
+    0, 0,
+    "About", {
+      fontFamily: "pixelFont",
+      fontSize: "2rem",
       color: "#000000",
       stroke: "#000000",
       strokeThickness: 1,
+      align: "center"
     });
 
-    this.cursors?.space.on("down", () => {
-      if (this.canEnter.projectsBuilding) {
-        
-        this.scene.transition({
-          target: "Projects",
-          duration: 1000,
-          moveBelow: true,
-          data: {
-            character: this.selectedCharacter,
-          },
-          onStart: () => {
-            this.scene.scene.cameras.main.fadeOut(1000, 0, 0, 0, () => {
-              console.log("Fading out...");
-            });
-          },
-        });
+    Phaser.Display.Align.In.Center(abBuilding_text, abBuilding_rectangleForText);
 
-      }
+    this.cursors?.space.on("down", () => {
+      console.log("Trying to enter...")
+      this.enterBuilding();
     });
   }
 
   update(): void {
     this.player.update();
-
-    // this.animateWalk();
-    // this.addSoundToWalk();
     this.checkDistance();
 
-    if (this.cursors?.space.isDown) {
-      this.enterBuilding();
-    }
   } // end of update ()
 
-  // animateWalk() {
-  //   if (this.cursors!.left.isDown) {
-  //     this.player.setVelocityX(-160);
-  //     this.player.setFlipX(true);
-  //     if (!this.player.anims.isPlaying) {
-  //       this.player.anims.play("walk", true);
-  //     }
-  //   } else if (this.cursors!.right.isDown) {
-  //     this.player.setVelocityX(160);
-  //     this.player.setFlipX(false);
-  //     if (!this.player.anims.isPlaying) {
-  //       this.player.anims.play("walk", true);
-  //     }
-  //   } else if (this.cursors!.up.isDown) {
-  //     this.player.setVelocityY(-160);
-  //     if (!this.player.anims.isPlaying) {
-  //       this.player.anims.play("walk", true);
-  //     }
-  //   } else if (this.cursors!.down.isDown) {
-  //     this.player.setVelocityY(160);
-  //     if (!this.player.anims.isPlaying) {
-  //       this.player.anims.play("walk", true);
-  //     }
-  //   } else {
-  //     this.player.setVelocity(0);
-  //     this.player.anims.play("idle", true);
-  //   }
-  // }
-
-  // addSoundToWalk() {
-  //   if (
-  //     this.cursors!.down.isDown ||
-  //     this.cursors!.up.isDown ||
-  //     this.cursors!.left.isDown ||
-  //     this.cursors!.right.isDown
-  //   ) {
-  //     if (!this.game.sound.isPlaying("walk-grass")) {
-  //       this.sound.play("walk-grass");
-  //     }
-  //   }
-
-  //   if (
-  //     this.cursors!.down.isUp ||
-  //     this.cursors!.up.isUp ||
-  //     this.cursors!.left.isUp ||
-  //     this.cursors!.right.isUp
-  //   ) {
-  //     if (!this.game.sound.isPlaying("walk-grass")) {
-  //       this.sound.removeByKey("walk-grass");
-  //     }
-  //   }
-  // }
-
   checkCollision(
-    player:
-      | Phaser.Physics.Arcade.Body
-      | Phaser.Types.Physics.Arcade.GameObjectWithBody
-      | Phaser.Tilemaps.Tile,
     object:
       | Phaser.Physics.Arcade.Body
       | Phaser.Types.Physics.Arcade.GameObjectWithBody
       | Phaser.Tilemaps.Tile
   ) {
-    console.log(
-      "Collision between",
-      "name" in player ? player.name : "player",
-      "and",
-      "name" in object ? object.name : "object"
-    );
-
     if ("name" in object) {
       this.setCanEnter({ [object.name]: true });
     }
@@ -272,17 +232,8 @@ export class Game extends Scene {
   }
 
   setCanEnter(updatedValue: { [key: string]: boolean }) {
-    this.canEnter = {
-      ...this.canEnterStartingState,
-      ...updatedValue,
-    };
-    console.log(
-      "Updated canEnter with new value:",
-      updatedValue,
-      "\nCurrent canEnter:",
-      this.canEnter
-    );
-
+    const [key, value] = Object.entries(updatedValue)[0]
+    this.canEnter[key] = value
     this.updateSelected(...Object.entries(updatedValue)[0]) 
   }
 
@@ -295,6 +246,7 @@ export class Game extends Scene {
         "y" in object && typeof object.y === "number" ? object.y : 0,
         150
       );
+
 
       const isInRange = Phaser.Geom.Circle.Contains(
         circle,
@@ -313,12 +265,12 @@ export class Game extends Scene {
   }
 
   enterBuilding() {
-    console.log("Entering building...");
-
+    
     // This should be a safe approach as only one building should be true at any given time
     Object.entries(this.canEnter).find(([key, value]) => {
       if (value) {
-        this.scene.start(key, { character: this.selectedCharacter });
+        console.log("Entering building...", key, value);
+        this.scene.start(`${key[0].toUpperCase()}${key.slice(1)}`, { character: this.selectedCharacter });
       }
     });
   }

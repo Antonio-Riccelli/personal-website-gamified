@@ -24,7 +24,6 @@ export class ChooseCharacter extends Scene {
     this.load.audio("select", ["assets/audio/sfx/select.mp3"]);
     this.load.audio("soundtrack", ["assets/audio/music/character-select.mp3"]);
     this.load.audio("confirmCharacter", ["assets/audio/sfx/confirm.mp3"]);
-    this.load.font('pixelFont', 'assets/fonts/PixelifySans-VariableFont_wght.ttf', 'opentype');
   }
 
   create() {
@@ -162,6 +161,7 @@ export class ChooseCharacter extends Scene {
           moveBelow: true,
           data: {
             character: this.getSelectedCharacter,
+            prevScene: "ChooseCharacter"
           },
           onStart: this.transitionOut,
         });
