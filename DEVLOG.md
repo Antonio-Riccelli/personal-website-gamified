@@ -28,3 +28,12 @@ Retrieving and generating texture was challenging due to Phaser structuring the 
 - Many create their tilemaps beforehand using software like [Tiled](https://www.mapeditor.org/) which, as I understand, also allows you to *pre-bake* certain properties and data into the tiles. This should supposedly help also with collision detection and other stuff. As I wasn't aware of this initially, I just created a layer of tiles manually from certain textures. I faced the issue of how to handle collision and interactions between player and buildings/characters/objects, so I opted to create an invisible circle for each entity starting from its center xy coordinates and extending for a certain radius. This allowed me to check if the player is within a certain distance from the object and trigger an event. It's kind of a hacky solution but it works for now and can be applied to any other element. Code hasn't been abstracted yet but I will refactor soon.
 - Managed to find some more songs/melodies/chords/loops I originally wrote that can be used for the game. They have all been sitting in my drive for years and it's good to give them a purpose.
 - For a mini-game that's so tiny in scope, you still get to face and deal with a surprisingly high number of issues and choices. I feel this is helping me improve my creative and problem-solving skills, in addition to my understanding of game design and even of a specific framework like Phaser.js
+
+## 22/11/2024
+
+- I've started creating Scenes for the buildings' interiors. One challenge that immediately became apparent was how to make the player aware that they were close to the exit and could action it to leave the building. I've opted for creating an invisible rectangle and using tweens to animate the player's sprite color as a signal. It's neat and I can reuse the code for all buildings.
+- Whereas previously I was using one unique tile for the Game scene's terrain, I've now randomised to create a more organic-looking landscape. As I'm using `Math.random()`, at each run the game will generate a different landscape.
+- I've added the first NPC, although I'm struggling to make collisions work properly. I'm sure I will figure it out with enough time.
+- Previously, when a player exited a building, they would be spawned in the same initial location. I've updated this so that they're now spawned in front of the building they're exiting.
+- Code is quite messy at the moment, but I'm still trying to keep it as clean as possible. Refactoring will come later.
+- Phaser's docs really need a do-over.
