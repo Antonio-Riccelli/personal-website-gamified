@@ -22,7 +22,10 @@ export class Game extends Scene {
   canEnter: { [key: string]: boolean } = {
     ...this.canEnterStartingState,
   };
+  canTalk: boolean;
   prevScene: string;
+  antonio: Phaser.Physics.Arcade.Sprite;
+  antonioCircle: Phaser.Geom.Circle
 
   constructor() {
     super("Game");
@@ -35,6 +38,7 @@ export class Game extends Scene {
     this.floor = SceneFloorMapping[this.scene.key].floor;
     this.prevScene = data.prevScene;
   }
+
   preload(): void {
     this.load.spritesheet(
       `${this.selectedCharacter}_walk`,
@@ -47,6 +51,30 @@ export class Game extends Scene {
       }
     );
 
+    this.load.spritesheet(
+      "antonio-walk",
+      "assets/villagers/old-man/old_man_walk.png",
+      {
+        frameWidth: 32,
+        frameHeight: 48,
+        spacing: 16,
+        margin: 0
+      }
+    )
+
+    this.load.spritesheet(
+      "antonio-idle",
+      "assets/villagers/old-man/old_man_idle.png",
+      {
+        frameWidth: 32,
+        frameHeight: 48,
+        spacing: 16,
+        margin: 0
+      }
+    )
+
+    this.load.image("antonio-select", "assets/villagers/old-man/old_man-select.png");
+
     this.load.image("projectsBuilding", "assets/objects/objects/house/4.png");
     this.load.image(
       "projectsBuilding-selected",
@@ -58,6 +86,7 @@ export class Game extends Scene {
       "assets/objects/objects/house/2-selected.png"
     );
     this.load.image("tiles", "assets/objects/tiles-1/tileset.png");
+
 
     this.load.audio("ost", ["assets/phaser.mp3"]);
     this.load.audio(`walk-${this.floor}`, [`assets/audio/sfx/walk-${this.floor}.mp3`]);
@@ -143,12 +172,41 @@ export class Game extends Scene {
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.camera = this.cameras.main;
 
+// PLAYER
+
     const playerStartingCoords = {
       x: this.prevScene === "ChooseCharacter" ? this.cameras.main.width / 2 : (this as any)[`${this.prevScene[0].toLowerCase()}${this.prevScene.slice(1)}`]?.x + this.player.width / 2 ?? 50,
       y: this.prevScene === "ChooseCharacter" ? this.cameras.main.height - 96 : (this as any)[`${this.prevScene[0].toLowerCase()}${this.prevScene.slice(1)}`]?.y + this.player.height + 50 ?? 50,
     } 
 
     this.player = new Player(this, playerStartingCoords.x, playerStartingCoords.y,  this.selectedCharacter, this.floor);
+
+    // ANTONIO
+    this.antonio = this.physics.add.sprite(900, 500, "antonio-idle")
+    this.antonio.setDisplaySize(60, 60);
+    // this.antonio.setSize(60, 60)
+    this.antonio.setOffset(-16, 0); 
+    this.antonio.setName("antonio")
+    this.antonio.setCollideWorldBounds(true)
+    this.antonio.setImmovable(true)
+   
+    // this.antonio.setSize(60, 60)
+    this.antonioCircle = new Phaser.Geom.Circle(this.antonio.x, this.antonio.y, 150);
+    this.physics.world.createDebugGraphic();
+
+    this.physics.add.collider(
+      this.player,
+      this.antonio,
+      () => {
+        this.canTalk = true;
+        this.antonio.setTexture("antonio-select")
+      },
+      (player : any, antonio: any) => {
+        console.log('Collision velocities:', player.body.velocity.x, antonio.body.velocity.x);
+        return true;
+      },
+      this
+    )
 
     this.physics.add.collider(
       this.player,
@@ -212,6 +270,8 @@ export class Game extends Scene {
     this.player.update();
     this.checkDistance();
 
+
+
   } // end of update ()
 
   checkCollision(
@@ -224,6 +284,8 @@ export class Game extends Scene {
       this.setCanEnter({ [object.name]: true });
     }
   }
+
+ 
 
   updateSelected(key: string, selected: boolean) {
     this.buildings.getMatching("name", key)[0].setTexture(
@@ -248,18 +310,27 @@ export class Game extends Scene {
       );
 
 
-      const isInRange = Phaser.Geom.Circle.Contains(
+      const isBuildingInRange = Phaser.Geom.Circle.Contains(
         circle,
         this.player.x,
         this.player.y
       );
 
-      if (!isInRange) {
+      if (!isBuildingInRange) {
         this.setCanEnter({
           ["name" in object && typeof object.name === "string"
             ? object.name
             : ""]: false,
         });
+      }
+
+      const isAntonioInRange = this.antonioCircle.contains(
+        this.player.x,
+        this.player.y
+      )
+
+      if (!isAntonioInRange) {
+        this.antonio.setTexture("antonio-idle")
       }
     });
   }
@@ -270,7 +341,17 @@ export class Game extends Scene {
     Object.entries(this.canEnter).find(([key, value]) => {
       if (value) {
         console.log("Entering building...", key, value);
-        this.scene.start(`${key[0].toUpperCase()}${key.slice(1)}`, { character: this.selectedCharacter });
+        this.scene.transition({
+          target: `${key[0].toUpperCase()}${key.slice(1)}`,
+          duration: 1000,
+          moveBelow: true,
+          data: {
+            character: this.selectedCharacter,
+          },
+          onStart: () => {
+            this.scene.scene.cameras.main.fadeOut(1000, 0, 0, 0);
+          }
+        })
       }
     });
   }

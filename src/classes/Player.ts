@@ -8,13 +8,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     super(scene, x, y, `${character}_walk`);
     this.scene = scene;
     this.sceneFloor = sceneFloor;
-
+    this.setDisplaySize(60, 60);
     // Add sprite to scene
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
     // Physics
-    this.setDisplaySize(60, 60);
+  
     this.setName("player");
     this.setCollideWorldBounds(true);
 
@@ -28,7 +28,41 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   update(): void {
     this.setVelocity(0);
 
-    if (this.cursors!.left.isDown) {
+
+    if (this.cursors!.right.isDown && this.cursors!.up.isDown) {
+      this.setVelocityX(160);
+      this.setVelocityY(-160);
+      this.setFlipX(false);
+      if (!this.anims.isPlaying) {
+        this.anims.play("walk", true);
+      }
+    } else if (this.cursors!.right.isDown && this.cursors!.down.isDown) {
+        this.setVelocityX(160);
+        this.setVelocityY(160);
+        this.setFlipX(false);
+        if (!this.anims.isPlaying) {
+          this.anims.play("walk", true);
+        }
+      } else if (this.cursors!.left.isDown && this.cursors!.up.isDown) {
+        this.setVelocityX(-160);
+        this.setVelocityY(-160);
+        this.setFlipX(true);
+        if (!this.anims.isPlaying) {
+          this.anims.play("walk", true);
+        }
+      } else if (this.cursors!.left.isDown && this.cursors!.down.isDown) {
+        this.setVelocityX(-160);
+        this.setVelocityY(160);
+        this.setFlipX(true);
+        if (!this.anims.isPlaying) {
+          this.anims.play("walk", true);
+        }
+      }
+      
+      
+      
+      
+      else if (this.cursors!.left.isDown) {
         this.setVelocityX(-160);
         this.setFlipX(true);
         if (!this.anims.isPlaying) {

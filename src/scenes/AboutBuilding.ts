@@ -64,10 +64,7 @@ export class AboutBuilding extends Scene {
 
     this.twCanExitBuilding = this.tweens.add({
       targets: this.player,
-      // tint: 0xFFFFFF,
       tint: {from: 0xFFFFFF, to: 0xFFFFFF},
-      // tintFill: true,
-      // alpha: 0.5,
       duration: 100,
       yoyo: true,
       repeat: -1,
@@ -106,15 +103,12 @@ export class AboutBuilding extends Scene {
 
     const isInRange = this.rectangle.contains(this.player.x, this.player.y);
     if (isInRange) {
-      // console.log("Attempting playing tween in range...")
       if (!this.twCanExitBuilding.isPlaying()) {
         this.twCanExitBuilding.restart();
       }
     } else if (!isInRange) {
-      // console.log("No longer in range...")
       this.twCanExitBuilding.pause();
       this.player.clearTint();
-      // this.player.setAlpha(1);
     }
   }
 }
