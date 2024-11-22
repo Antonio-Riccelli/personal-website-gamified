@@ -89,9 +89,18 @@ export class AboutBuilding extends Scene {
     this.player.update();
 
     if (this.cursors?.space.isDown) {
-      this.scene.start("Game", {
-        character: this.selectedCharacter,
-        floor: this.floor,
+      this.scene.transition({
+        target: "Game",
+        duration: 1000,
+        moveBelow: true,
+        data: {
+          character: this.selectedCharacter,
+          floor: this.floor,
+          prevScene: this.scene.key
+        },
+        onStart: () => {
+          this.scene.scene.cameras.main.fadeOut(1000, 0, 0, 0)
+        }
       });
     }
 

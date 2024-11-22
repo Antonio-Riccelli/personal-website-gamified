@@ -22,6 +22,7 @@ export class Game extends Scene {
   canEnter: { [key: string]: boolean } = {
     ...this.canEnterStartingState,
   };
+  prevScene: string;
 
   constructor() {
     super("Game");
@@ -32,8 +33,8 @@ export class Game extends Scene {
     console.log("init", data);
     this.selectedCharacter = data.character;
     this.floor = SceneFloorMapping[this.scene.key].floor;
+    this.prevScene = data.prevScene;
   }
-
   preload(): void {
     this.load.spritesheet(
       `${this.selectedCharacter}_walk`,
@@ -64,13 +65,30 @@ export class Game extends Scene {
 
   create(): void {
     // Fade in
-    this.cameras.main.fadeIn(1000);
+    this.cameras.main.fadeIn(2000);
 
     this.physics.world.setBounds(0, 0, 1024, 768);
 
     const level = Array(24)
       .fill(null)
-      .map(() => Array(32).fill(0));
+      .map(() => Array(32).fill(37));
+
+      for (let y = 0; y < level.length; y++) {
+        for (let x = 0; x < level[y].length; x++) {
+          const randNum = Math.random();
+          if (randNum < 0.2) {
+            level[y][x] = 37;
+          } else if (randNum < 0.4) {
+            level[y][x] = 20;
+          } else if (randNum < 0.6) {
+            level[y][x] = 18;
+          } else if (randNum < 0.8) {
+            level[y][x] = 25;
+          } else {
+            level[y][x] = 37;
+          }
+        }
+      }
 
     const map = this.make.tilemap({
       data: level,
@@ -125,7 +143,12 @@ export class Game extends Scene {
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.camera = this.cameras.main;
 
-    this.player = new Player(this, this.cameras.main.width / 2, this.cameras.main.height - 96,  this.selectedCharacter, this.floor);
+    const playerStartingCoords = {
+      x: this.prevScene === "ChooseCharacter" ? this.cameras.main.width / 2 : (this as any)[`${this.prevScene[0].toLowerCase()}${this.prevScene.slice(1)}`]?.x + this.player.width / 2 ?? 50,
+      y: this.prevScene === "ChooseCharacter" ? this.cameras.main.height - 96 : (this as any)[`${this.prevScene[0].toLowerCase()}${this.prevScene.slice(1)}`]?.y + this.player.height + 50 ?? 50,
+    } 
+
+    this.player = new Player(this, playerStartingCoords.x, playerStartingCoords.y,  this.selectedCharacter, this.floor);
 
     this.physics.add.collider(
       this.player,
@@ -136,29 +159,48 @@ export class Game extends Scene {
     );
 
     // TEXT
-    this.add.text(
-      this.projectsBuilding.x - this.projectsBuilding.width / 2,
+    const pjBuilding_rectangleForText = this.add.rectangle(
+      this.projectsBuilding.x ,
       this.projectsBuilding.y - (this.projectsBuilding.height / 100) * 66,
+      this.projectsBuilding.width,
+      this.projectsBuilding.height / 100 * 33,
+      0x000000,
+      0.2
+    );
+    const pjBuilding_text = this.add.text(
+      0, 0,
       "Projects",
       {
-        fontFamily: "Arial Black",
+        fontFamily: "pixelFont",
         fontSize: "2rem",
         color: "#000000",
         stroke: "#000000",
         strokeThickness: 1,
-      }
+        align: "center"
+      },
     );
+    Phaser.Display.Align.In.Center(pjBuilding_text, pjBuilding_rectangleForText);
 
-    this.add.text(
-      this.aboutBuilding.x - this.aboutBuilding.width / 2,
-    this.aboutBuilding.y - (this.aboutBuilding.height / 100) * 66, 
+    const abBuilding_rectangleForText = this.add.rectangle(
+      this.aboutBuilding.x ,
+      this.aboutBuilding.y - (this.aboutBuilding.height / 100) * 66,
+      this.aboutBuilding.width,
+      this.aboutBuilding.height / 100 * 33,
+      0x000000,
+      0.2
+    );
+    const abBuilding_text = this.add.text(
+    0, 0,
     "About", {
-      fontFamily: "Arial Black",
-      fontSize: "32px",
+      fontFamily: "pixelFont",
+      fontSize: "2rem",
       color: "#000000",
       stroke: "#000000",
       strokeThickness: 1,
+      align: "center"
     });
+
+    Phaser.Display.Align.In.Center(abBuilding_text, abBuilding_rectangleForText);
 
     this.cursors?.space.on("down", () => {
       console.log("Trying to enter...")
@@ -192,11 +234,6 @@ export class Game extends Scene {
   setCanEnter(updatedValue: { [key: string]: boolean }) {
     const [key, value] = Object.entries(updatedValue)[0]
     this.canEnter[key] = value
-    console.log(
-      "\nCurrent canEnter:",
-      this.canEnter
-    );
-
     this.updateSelected(...Object.entries(updatedValue)[0]) 
   }
 

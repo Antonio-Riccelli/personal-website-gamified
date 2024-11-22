@@ -13,6 +13,9 @@ export class ProjectsBuilding extends Scene {
   obstacles: Phaser.Physics.Arcade.StaticGroup;
   selectedCharacter: string;
   floor: string;
+  rectangle: Phaser.Geom.Rectangle;
+  twCanExitBuilding: Phaser.Tweens.Tween;
+  prevScene: string;
 
   constructor() {
     super("ProjectsBuilding");
@@ -58,16 +61,62 @@ export class ProjectsBuilding extends Scene {
     this.sound.add(`walk-${this.floor}`, { loop: true });
     // Add player
     this.player = new Player(this, this.cameras.main.width / 2, this.cameras.main.height - 96,  this.selectedCharacter, this.floor).setScale(3, 3);
+  
+    this.rectangle = new Phaser.Geom.Rectangle(this.cameras.main.width / 2 - 150, this.cameras.main.height - 200, 300, 200)
+
+    this.twCanExitBuilding = this.tweens.add({
+      targets: this.player,
+      // tint: 0xFFFFFF,
+      tint: {from: 0xFFFFFF, to: 0xFFFFFF},
+      // tintFill: true,
+      // alpha: 0.5,
+      duration: 100,
+      yoyo: true,
+      repeat: -1,
+      paused: true,
+      persist: true,
+      onStart: () => {
+        this.player.setTintFill(0xFFFFFF);
+      },
+      onRepeat: () => {
+        this.player.setTintFill(0xFFFFFF);
+      },
+      onYoyo: () => {
+        this.player.clearTint();
+      }
+    });
   }
 
   update() {
     this.player.update();
 
     if (this.cursors?.space.isDown) {
-      this.scene.start("Game", {
-        character: this.selectedCharacter,
-        floor: this.floor,
+      this.scene.transition({
+        target: "Game",
+        duration: 1500,
+        moveBelow: true,
+        onStart: () => {
+          this.scene.scene.cameras.main.fadeOut(1500, 0, 0, 0)
+        },
+        data: {
+          character: this.selectedCharacter,
+          floor: this.floor,
+          prevScene: this.scene.key
+        }
       });
+    }
+
+    const isInRange = this.rectangle.contains(this.player.x, this.player.y);
+    if (isInRange) {
+    
+      if (!this.twCanExitBuilding.isPlaying()) {
+        this.twCanExitBuilding.restart();
+      }
+    } else if (!isInRange) {
+    
+      this.twCanExitBuilding.pause();
+      this.player.clearTint();
+    
     }
   }
 }
