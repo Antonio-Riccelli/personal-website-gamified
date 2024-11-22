@@ -51,6 +51,11 @@ export class Game extends Scene {
       "projectsBuilding-selected",
       "assets/objects/objects/house/4-selected.png"
     );
+    this.load.image("aboutBuilding", "assets/objects/objects/house/2.png");
+    this.load.image(
+      "aboutBuilding-selected",
+      "assets/objects/objects/house/2-selected.png"
+    );
     this.load.image("tiles", "assets/objects/tiles-1/tileset.png");
 
     this.load.audio("ost", ["assets/phaser.mp3"]);
@@ -98,6 +103,15 @@ export class Game extends Scene {
     this.projectsBuilding.setSize(150, 150);
     this.projectsBuilding.setName("projectsBuilding");
 
+    this.aboutBuilding = this.physics.add.sprite(
+      640,
+      200,
+      "aboutBuilding"
+    );
+    this.aboutBuilding.setImmovable(true);
+    this.aboutBuilding.setSize(150, 150);
+    this.aboutBuilding.setName("aboutBuilding");
+
     /******************
      ********* Buildings
      ******************/
@@ -105,17 +119,18 @@ export class Game extends Scene {
     this.buildings = this.physics.add.group({
       immovable: true,
     });
-    this.buildings.add(this.projectsBuilding);
+  
+    this.buildings.addMultiple([this.projectsBuilding, this.aboutBuilding]);
 
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.camera = this.cameras.main;
 
-    this.player = new Player(this, 100, 450,  this.selectedCharacter, this.floor);
+    this.player = new Player(this, this.cameras.main.width / 2, this.cameras.main.height - 96,  this.selectedCharacter, this.floor);
 
     this.physics.add.collider(
       this.player,
       this.buildings,
-      (player, building) => this.checkCollision(player, building),
+      (_, building) => this.checkCollision(building),
       undefined,
       this
     );
@@ -134,7 +149,10 @@ export class Game extends Scene {
       }
     );
 
-    this.add.text(100, 150, "About", {
+    this.add.text(
+      this.aboutBuilding.x - this.aboutBuilding.width / 2,
+    this.aboutBuilding.y - (this.aboutBuilding.height / 100) * 66, 
+    "About", {
       fontFamily: "Arial Black",
       fontSize: "32px",
       color: "#000000",
@@ -143,23 +161,8 @@ export class Game extends Scene {
     });
 
     this.cursors?.space.on("down", () => {
-      if (this.canEnter.projectsBuilding) {
-        
-        this.scene.transition({
-          target: "ProjectsBuilding",
-          duration: 1000,
-          moveBelow: true,
-          data: {
-            character: this.selectedCharacter,
-          },
-          onStart: () => {
-            this.scene.scene.cameras.main.fadeOut(1000, 0, 0, 0, () => {
-              console.log("Fading out...");
-            });
-          },
-        });
-
-      }
+      console.log("Trying to enter...")
+      this.enterBuilding();
     });
   }
 
@@ -167,33 +170,14 @@ export class Game extends Scene {
     this.player.update();
     this.checkDistance();
 
-    if (this.cursors?.space.isDown) {
-      this.enterBuilding();
-    }
   } // end of update ()
 
-  shutdown() {
-    this.sound.removeByKey("walk");
-    this.sound.stopAll();
-  }
-
   checkCollision(
-    player:
-      | Phaser.Physics.Arcade.Body
-      | Phaser.Types.Physics.Arcade.GameObjectWithBody
-      | Phaser.Tilemaps.Tile,
     object:
       | Phaser.Physics.Arcade.Body
       | Phaser.Types.Physics.Arcade.GameObjectWithBody
       | Phaser.Tilemaps.Tile
   ) {
-    console.log(
-      "Collision between",
-      "name" in player ? player.name : "player",
-      "and",
-      "name" in object ? object.name : "object"
-    );
-
     if ("name" in object) {
       this.setCanEnter({ [object.name]: true });
     }
@@ -206,13 +190,9 @@ export class Game extends Scene {
   }
 
   setCanEnter(updatedValue: { [key: string]: boolean }) {
-    this.canEnter = {
-      ...this.canEnterStartingState,
-      ...updatedValue,
-    };
+    const [key, value] = Object.entries(updatedValue)[0]
+    this.canEnter[key] = value
     console.log(
-      "Updated canEnter with new value:",
-      updatedValue,
       "\nCurrent canEnter:",
       this.canEnter
     );
@@ -229,6 +209,7 @@ export class Game extends Scene {
         "y" in object && typeof object.y === "number" ? object.y : 0,
         150
       );
+
 
       const isInRange = Phaser.Geom.Circle.Contains(
         circle,
@@ -247,11 +228,11 @@ export class Game extends Scene {
   }
 
   enterBuilding() {
-    console.log("Entering building...");
-
+    
     // This should be a safe approach as only one building should be true at any given time
     Object.entries(this.canEnter).find(([key, value]) => {
       if (value) {
+        console.log("Entering building...", key, value);
         this.scene.start(`${key[0].toUpperCase()}${key.slice(1)}`, { character: this.selectedCharacter });
       }
     });

@@ -4,6 +4,7 @@ import { MainMenu } from './scenes/MainMenu';
 import { Preloader } from './scenes/Preloader';
 import { ChooseCharacter } from './scenes/ChooseCharacter';
 import { ProjectsBuilding } from './scenes/ProjectsBuilding';
+import { AboutBuilding } from './scenes/AboutBuilding';
 
 import { Game, Types } from "phaser";
 
@@ -33,6 +34,7 @@ const config: Types.Core.GameConfig = {
         ChooseCharacter,
         MainGame,
         ProjectsBuilding,
+        AboutBuilding,
     ]
 };
 

@@ -56,10 +56,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.setFrame(0)
       }
 
-     
-
       this.handleWalkSound();
-
     
   }
 
