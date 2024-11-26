@@ -23,6 +23,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Animations
     this.createAnimations(character);
+
+    this.setOffset(-2, 7)
   }
 
   update(): void {

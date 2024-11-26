@@ -16,6 +16,15 @@ export class ProjectsBuilding extends Scene {
   rectangle: Phaser.Geom.Rectangle;
   twCanExitBuilding: Phaser.Tweens.Tween;
   prevScene: string;
+  projects: any;
+  canInteractStartingState: { [key: string]: boolean } = {
+    niftiViewer: false,
+    fightForApollo: false,
+    cloudResume: false,
+  };
+  canInteract: { [key: string]: boolean } = {
+    ...this.canInteractStartingState,
+  };
 
   constructor() {
     super("ProjectsBuilding");
@@ -39,12 +48,24 @@ export class ProjectsBuilding extends Scene {
 
     this.load.image("thing", "assets/house.png");
     this.load.image("wood-floor", "./assets/objects/tiles-3/wood-1.png");
+    this.load.image("box-1", "assets/objects/objects/box/1.png");
+    this.load.image("box-2", "assets/objects/objects/box/2.png");
+    this.load.image("box-3", "assets/objects/objects/box/3.png");
+    this.load.image("box-4", "assets/objects/objects/box/4.png");
+    this.load.image("box-5", "assets/objects/objects/box/5.png");
+    this.load.image("fightForApollo", "assets/objects/objects/projects/boxing-bag.png");
+    this.load.image("cloudResume", "assets/objects/objects/projects/cv.png");
+    this.load.image("niftiViewer", "assets/objects/objects/projects/brain-nifti.png")
+    this.load.image("fightForApollo-selected", "assets/objects/objects/projects/boxing-bag-selected.png");
+    this.load.image("cloudResume-selected", "assets/objects/objects/projects/cv-selected.png");
+    this.load.image("niftiViewer-selected", "assets/objects/objects/projects/brain-nifti-selected.png")
     this.load.audio(`walk-${this.floor}`, [`assets/audio/sfx/walk-${this.floor}.mp3`]);
   }
 
   create() {
     this.cameras.main.fadeIn(2000);
     this.cursors = this.input.keyboard?.createCursorKeys();
+    this.physics.world.createDebugGraphic();
 
     const levelData = Array(96)
     .fill(null)
@@ -59,9 +80,29 @@ export class ProjectsBuilding extends Scene {
     const tiles = map.addTilesetImage("wood-floor", "wood-floor");
     map.createLayer("layer", tiles!, 0, 0)
     this.sound.add(`walk-${this.floor}`, { loop: true });
+
+    // Place boxes
+    for (let i = 50; i < 1000; i += 50) {
+      const box = Math.ceil(Math.random() * 5);
+      this.physics.add.sprite(i, 50, `box-${box ? box : 1}`).setScale(2);
+    }
+
+
+
+    this.projects = this.physics.add.group({
+      immovable: true,
+    });
+    const fightForApollo = this.physics.add.sprite(this.cameras.main.width / 2 - 400, 400, "fightForApollo").setImmovable(true).setName("fightForApollo");
+    const cloudResume = this.physics.add.sprite(this.cameras.main.width / 2 +  400, 300, "cloudResume").setScale(0.2).setImmovable(true).setName("cloudResume")
+    const niftiViewer = this.physics.add.sprite(this.cameras.main.width / 2, 200, "niftiViewer").setScale(0.5).setImmovable(true).setName("niftiViewer");
+    this.projects.addMultiple([fightForApollo, cloudResume, niftiViewer])
+
+    
+
+
     // Add player
     this.player = new Player(this, this.cameras.main.width / 2, this.cameras.main.height - 96,  this.selectedCharacter, this.floor).setScale(3, 3);
-  
+    this.physics.add.collider(this.projects, this.player, (_, obj2) => this.checkCollision(obj2));
     this.rectangle = new Phaser.Geom.Rectangle(this.cameras.main.width / 2 - 150, this.cameras.main.height - 200, 300, 200)
 
     this.twCanExitBuilding = this.tweens.add({
@@ -119,4 +160,29 @@ export class ProjectsBuilding extends Scene {
     
     }
   }
+
+  checkCollision(
+    object:
+      | Phaser.Physics.Arcade.Body
+      | Phaser.Types.Physics.Arcade.GameObjectWithBody
+      | Phaser.Tilemaps.Tile
+  ) {
+    if ("name" in object) {
+      this.setCanInteract({ [object.name]: true });
+    }
+  }
+
+  updateSelected(key: string, selected: boolean) {
+    this.projects.getMatching("name", key)[0].setTexture(
+      `${key}${selected ? '-selected' : ''}`
+    )
+  }
+
+  setCanInteract(updatedValue: { [key: string]: boolean }) {
+    const [key, value] = Object.entries(updatedValue)[0]
+    this.canInteract[key] = value
+    this.updateSelected(...Object.entries(updatedValue)[0]) 
+  }
+
+
 }

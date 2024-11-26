@@ -185,7 +185,7 @@ export class Game extends Scene {
     this.antonio = this.physics.add.sprite(900, 500, "antonio-idle")
     this.antonio.setDisplaySize(60, 60);
     // this.antonio.setSize(60, 60)
-    this.antonio.setOffset(-16, 0); 
+    this.antonio.setOffset(-3, 7); 
     this.antonio.setName("antonio")
     this.antonio.setCollideWorldBounds(true)
     this.antonio.setImmovable(true)
