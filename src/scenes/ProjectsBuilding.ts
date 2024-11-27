@@ -89,12 +89,12 @@ export class ProjectsBuilding extends Scene {
     }
 
 
-
+    // Add project sprites
     this.projects = this.physics.add.group({
       immovable: true,
     });
-    const fightForApollo = this.physics.add.sprite(this.cameras.main.width / 2 - 400, 550, "fightForApollo").setImmovable(true).setName("fightForApollo").setDepth(2);
-     const rocky = this.physics.add.sprite(this.cameras.main.width / 2 - 350, 550, "rocky").setImmovable(true).setName("rocky").setScale(0.6)
+    const fightForApollo = this.physics.add.sprite(this.cameras.main.width / 2 - 400, 550, "fightForApollo").setImmovable(true).setName("fightForApollo").setDepth(2).setBodySize(200, 200);
+     const rocky = this.physics.add.sprite(this.cameras.main.width / 2 - 350, 550, "rocky").setImmovable(true).setName("rocky").setScale(0.4)
     
     const cloudResume = this.physics.add.sprite(this.cameras.main.width / 2 +  400, 300, "cloudResume").setScale(0.2).setImmovable(true).setName("cloudResume")
     this.niftiViewer = this.physics.add.sprite(this.cameras.main.width / 2, 200, "niftiViewer").setScale(0.5).setImmovable(true).setName("niftiViewer");
@@ -107,15 +107,15 @@ export class ProjectsBuilding extends Scene {
     this.player = new Player(this, this.cameras.main.width / 2, this.cameras.main.height - 96,  this.selectedCharacter, this.floor).setScale(3, 3);
     this.physics.add.collider(this.projects, this.player, (_, obj2) => this.checkCollision(obj2));
     this.physics.add.collider(this.player, rocky)
+
+    // Add rectangle for exit detection
     this.rectangle = new Phaser.Geom.Rectangle(this.cameras.main.width / 2 - 150, this.cameras.main.height - 200, 300, 200)
 
+    // Add tweens
     this.twCanExitBuilding = this.tweens.add({
       targets: this.player,
-      // tint: 0xFFFFFF,
       tint: {from: 0xFFFFFF, to: 0xFFFFFF},
-      // tintFill: true,
-      // alpha: 0.5,
-      duration: 100,
+      duration: 200,
       yoyo: true,
       repeat: -1,
       paused: true,
@@ -197,6 +197,5 @@ export class ProjectsBuilding extends Scene {
     this.canInteract[key] = value
     this.updateSelected(...Object.entries(updatedValue)[0]) 
   }
-
 
 }
