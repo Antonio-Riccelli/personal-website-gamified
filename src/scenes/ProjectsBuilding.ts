@@ -8,7 +8,6 @@ export class ProjectsBuilding extends Scene {
   msg_text: Phaser.GameObjects.Text;
   cursors: Phaser.Types.Input.Keyboard.CursorKeys | undefined;
   player: Phaser.Physics.Arcade.Sprite;
-  house: Phaser.Physics.Arcade.Sprite;
   facing: "left" | "right" | "idle" = "idle";
   obstacles: Phaser.Physics.Arcade.StaticGroup;
   selectedCharacter: string;
@@ -25,6 +24,8 @@ export class ProjectsBuilding extends Scene {
   canInteract: { [key: string]: boolean } = {
     ...this.canInteractStartingState,
   };
+  niftiViewer: Phaser.Physics.Arcade.Sprite
+  brainPulse: Phaser.Tweens.Tween;
 
   constructor() {
     super("ProjectsBuilding");
@@ -46,7 +47,6 @@ export class ProjectsBuilding extends Scene {
       margin: 0,
     });
 
-    this.load.image("thing", "assets/house.png");
     this.load.image("wood-floor", "./assets/objects/tiles-3/wood-1.png");
     this.load.image("box-1", "assets/objects/objects/box/1.png");
     this.load.image("box-2", "assets/objects/objects/box/2.png");
@@ -59,6 +59,7 @@ export class ProjectsBuilding extends Scene {
     this.load.image("fightForApollo-selected", "assets/objects/objects/projects/boxing-bag-selected.png");
     this.load.image("cloudResume-selected", "assets/objects/objects/projects/cv-selected.png");
     this.load.image("niftiViewer-selected", "assets/objects/objects/projects/brain-nifti-selected.png")
+    this.load.image("rocky", "assets/objects/objects/projects/rocky.png");
     this.load.audio(`walk-${this.floor}`, [`assets/audio/sfx/walk-${this.floor}.mp3`]);
   }
 
@@ -92,10 +93,12 @@ export class ProjectsBuilding extends Scene {
     this.projects = this.physics.add.group({
       immovable: true,
     });
-    const fightForApollo = this.physics.add.sprite(this.cameras.main.width / 2 - 400, 400, "fightForApollo").setImmovable(true).setName("fightForApollo");
+    const fightForApollo = this.physics.add.sprite(this.cameras.main.width / 2 - 400, 550, "fightForApollo").setImmovable(true).setName("fightForApollo").setDepth(2);
+     const rocky = this.physics.add.sprite(this.cameras.main.width / 2 - 350, 550, "rocky").setImmovable(true).setName("rocky").setScale(0.6)
+    
     const cloudResume = this.physics.add.sprite(this.cameras.main.width / 2 +  400, 300, "cloudResume").setScale(0.2).setImmovable(true).setName("cloudResume")
-    const niftiViewer = this.physics.add.sprite(this.cameras.main.width / 2, 200, "niftiViewer").setScale(0.5).setImmovable(true).setName("niftiViewer");
-    this.projects.addMultiple([fightForApollo, cloudResume, niftiViewer])
+    this.niftiViewer = this.physics.add.sprite(this.cameras.main.width / 2, 200, "niftiViewer").setScale(0.5).setImmovable(true).setName("niftiViewer");
+    this.projects.addMultiple([fightForApollo, cloudResume, this.niftiViewer])
 
     
 
@@ -103,6 +106,7 @@ export class ProjectsBuilding extends Scene {
     // Add player
     this.player = new Player(this, this.cameras.main.width / 2, this.cameras.main.height - 96,  this.selectedCharacter, this.floor).setScale(3, 3);
     this.physics.add.collider(this.projects, this.player, (_, obj2) => this.checkCollision(obj2));
+    this.physics.add.collider(this.player, rocky)
     this.rectangle = new Phaser.Geom.Rectangle(this.cameras.main.width / 2 - 150, this.cameras.main.height - 200, 300, 200)
 
     this.twCanExitBuilding = this.tweens.add({
@@ -126,6 +130,16 @@ export class ProjectsBuilding extends Scene {
         this.player.clearTint();
       }
     });
+
+    this.brainPulse = this.tweens.add({
+      targets: this.niftiViewer,
+      duration: 1000,
+      yoyo: true,
+      repeat: -1,
+      persist: true,
+      scale: {from: 0.4, to: 0.5},
+
+    })
   }
 
   update() {

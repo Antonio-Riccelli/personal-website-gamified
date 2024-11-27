@@ -350,6 +350,10 @@ export class Game extends Scene {
           },
           onStart: () => {
             this.scene.scene.cameras.main.fadeOut(1000, 0, 0, 0);
+            this.scene.scene.cameras.main.zoomTo(2, 1000)
+            const building  = this.buildings.getMatching("name", key)[0];
+            console.log("building", building)
+            this.scene.scene.cameras.main.pan(building.x, building.y)
           }
         })
       }
